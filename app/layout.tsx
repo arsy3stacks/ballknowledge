@@ -1,4 +1,3 @@
-import { LandingHeader } from "@/components/landing-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import type { Metadata } from "next";
@@ -27,11 +26,10 @@ export default function RootLayout({
 					enableSystem
 					disableTransitionOnChange
 				>
-					<div className="flex min-h-screen flex-col">
-						{/* <LandingHeader /> */}
-						<main className="flex-1">{children}</main>
-					</div>
-					<Toaster />
+					<body>
+						{children}
+						<Toaster />
+					</body>
 				</ThemeProvider>
 			</body>
 		</html>
