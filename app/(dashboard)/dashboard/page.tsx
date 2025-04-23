@@ -5,7 +5,6 @@ import { DashboardNav } from "@/components/dashboard-nav";
 import { FixtureCard } from "@/components/fixture-card";
 import { LeaderboardPreview } from "@/components/leaderboard-preview";
 import { PlayerStats } from "@/components/player-stats";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -92,11 +91,6 @@ export default function Dashboard() {
 		checkUser();
 	}, [supabase, router]);
 
-	const handleSignOut = async () => {
-		await supabase.auth.signOut();
-		router.push("/");
-	};
-
 	if (loading) {
 		return (
 			<div className="flex h-screen items-center justify-center">
@@ -106,109 +100,99 @@ export default function Dashboard() {
 	}
 
 	return (
-		<div className="min-h-screen bg-background">
-			<DashboardHeader user={user} player={player} onSignOut={handleSignOut} />
+		<main className="space-y-6">
+			<h1 className="text-3xl font-bold">Welcome, {player?.username}</h1>
 
-			<div className="container grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 py-8">
-				<DashboardNav />
-
-				<main className="space-y-6">
-					<h1 className="text-3xl font-bold">Welcome, {player?.username}</h1>
-
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<PlayerStats player={player} />
-					</div>
-
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<Card>
-							<CardHeader>
-								<CardTitle className="flex items-center gap-2">
-									<CalendarDays className="h-5 w-5 text-chart-2" /> Upcoming
-									Fixtures
-								</CardTitle>
-								<CardDescription>
-									Make your predictions before kickoff
-								</CardDescription>
-							</CardHeader>
-							<CardContent className="space-y-4">
-								{upcomingFixtures.length > 0 ? (
-									upcomingFixtures.map((fixture) => (
-										<FixtureCard
-											key={fixture.id}
-											fixture={fixture}
-											playerId={player?.id || ""}
-										/>
-									))
-								) : (
-									<p className="text-muted-foreground text-center py-4">
-										No upcoming fixtures
-									</p>
-								)}
-							</CardContent>
-							<CardFooter>
-								<Link href="/fixtures" className="w-full">
-									<Button variant="outline" className="w-full">
-										View All Fixtures
-									</Button>
-								</Link>
-							</CardFooter>
-						</Card>
-
-						<LeaderboardPreview playerId={player?.id || ""} />
-					</div>
-
-					<Card>
-						<CardHeader>
-							<CardTitle>Recent Predictions</CardTitle>
-							<CardDescription>
-								Your most recent match predictions
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							{recentPredictions.length > 0 ? (
-								<div className="space-y-4">
-									{recentPredictions.map((prediction) => (
-										<div
-											key={prediction.id}
-											className="flex items-center justify-between border-b pb-3"
-										>
-											<div>
-												<p className="font-medium">
-													{prediction.fixture.home_team} vs{" "}
-													{prediction.fixture.away_team}
-												</p>
-												<p className="text-sm text-muted-foreground">
-													{new Date(
-														prediction.fixture.match_day
-													).toLocaleDateString()}
-												</p>
-											</div>
-											<div className="bg-muted px-3 py-1 rounded-full text-sm">
-												{prediction.predicted_outcome === "H"
-													? "Home Win"
-													: prediction.predicted_outcome === "A"
-													? "Away Win"
-													: "Draw"}
-											</div>
-										</div>
-									))}
-								</div>
-							) : (
-								<p className="text-muted-foreground text-center py-4">
-									No predictions made yet
-								</p>
-							)}
-						</CardContent>
-						<CardFooter>
-							<Link href="/predictions" className="w-full">
-								<Button variant="outline" className="w-full">
-									View All Predictions
-								</Button>
-							</Link>
-						</CardFooter>
-					</Card>
-				</main>
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<PlayerStats player={player} />
 			</div>
-		</div>
+
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<CalendarDays className="h-5 w-5 text-chart-2" /> Upcoming
+							Fixtures
+						</CardTitle>
+						<CardDescription>
+							Make your predictions before kickoff
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						{upcomingFixtures.length > 0 ? (
+							upcomingFixtures.map((fixture) => (
+								<FixtureCard
+									key={fixture.id}
+									fixture={fixture}
+									playerId={player?.id || ""}
+								/>
+							))
+						) : (
+							<p className="text-muted-foreground text-center py-4">
+								No upcoming fixtures
+							</p>
+						)}
+					</CardContent>
+					<CardFooter>
+						<Link href="/fixtures" className="w-full">
+							<Button variant="outline" className="w-full">
+								View All Fixtures
+							</Button>
+						</Link>
+					</CardFooter>
+				</Card>
+
+				<LeaderboardPreview playerId={player?.id || ""} />
+			</div>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Recent Predictions</CardTitle>
+					<CardDescription>Your most recent match predictions</CardDescription>
+				</CardHeader>
+				<CardContent>
+					{recentPredictions.length > 0 ? (
+						<div className="space-y-4">
+							{recentPredictions.map((prediction) => (
+								<div
+									key={prediction.id}
+									className="flex items-center justify-between border-b pb-3"
+								>
+									<div>
+										<p className="font-medium">
+											{prediction.fixture.home_team} vs{" "}
+											{prediction.fixture.away_team}
+										</p>
+										<p className="text-sm text-muted-foreground">
+											{new Date(
+												prediction.fixture.match_day
+											).toLocaleDateString()}
+										</p>
+									</div>
+									<div className="bg-muted px-3 py-1 rounded-full text-sm">
+										{prediction.predicted_outcome === "H"
+											? "Home Win"
+											: prediction.predicted_outcome === "A"
+											? "Away Win"
+											: "Draw"}
+									</div>
+								</div>
+							))}
+						</div>
+					) : (
+						<p className="text-muted-foreground text-center py-4">
+							No predictions made yet
+						</p>
+					)}
+				</CardContent>
+				<CardFooter>
+					<Link href="/predictions" className="w-full">
+						<Button variant="outline" className="w-full">
+							View All Predictions
+						</Button>
+					</Link>
+				</CardFooter>
+			</Card>
+		</main>
 	);
 }
