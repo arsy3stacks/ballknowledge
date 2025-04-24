@@ -15,17 +15,17 @@ import { Player } from "@/lib/supabase";
 import { LogOut, Trophy, User } from "lucide-react";
 import Link from "next/link";
 
-interface DashboardHeaderProps {
+interface DashboardMenuProps {
 	user: any;
 	player: Player | null;
 	onSignOut: () => void;
 }
 
-export function DashboardHeader({
+export function DashboardNavbar({
 	user,
 	player,
 	onSignOut,
-}: DashboardHeaderProps) {
+}: DashboardMenuProps) {
 	return (
 		<header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 			<div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">

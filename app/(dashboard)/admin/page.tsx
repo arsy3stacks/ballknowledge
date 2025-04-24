@@ -1,36 +1,18 @@
 "use client";
 
-import { AdminFixtures } from "@/components/admin-fixtures";
-import { AdminPoints } from "@/components/admin-points";
-import { AdminSubmissions } from "@/components/admin-submissions";
-import { DashboardHeader } from "@/components/dashboard-header";
-import { DashboardNav } from "@/components/dashboard-nav";
-import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { AdminFixtures } from "@/app/(dashboard)/_components/admin-fixtures";
+import { AdminPoints } from "@/app/(dashboard)/_components/admin-points";
+import { AdminSubmissions } from "@/app/(dashboard)/_components/admin-submissions";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Award, CalendarDays, ClipboardCheck, Users } from "lucide-react";
+import { CalendarDays, ClipboardCheck, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function AdminDashboard() {
 	const router = useRouter();
 	const supabase = createClientComponentClient();
-	const [user, setUser] = useState<any>(null);
-	const [player, setPlayer] = useState<any>(null);
-
-	// In production, you'd need to add proper authorization checks here
-
-	const handleSignOut = async () => {
-		await supabase.auth.signOut();
-		router.push("/");
-	};
 
 	return (
 		<main className="space-y-6">

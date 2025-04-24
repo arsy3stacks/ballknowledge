@@ -1,4 +1,3 @@
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,7 +8,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { ArrowRight, Calendar, Trophy, Users } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -37,6 +35,7 @@ export default function HomePage() {
 					</Link>
 				</div>
 
+				{/* Cards */}
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 px-4 sm:px-6 lg:px-8">
 					<Card className="flex flex-col h-full">
 						<CardHeader className="text-left">

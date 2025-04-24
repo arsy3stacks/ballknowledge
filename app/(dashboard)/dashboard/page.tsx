@@ -1,7 +1,5 @@
 "use client";
 
-import { DashboardHeader } from "@/components/dashboard-header";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { FixtureCard } from "@/components/fixture-card";
 import { LeaderboardPreview } from "@/components/leaderboard-preview";
 import { PlayerStats } from "@/components/player-stats";
@@ -16,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Fixture, Player, Prediction } from "@/lib/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CalendarDays, Home, LogOut, Trophy, User } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

@@ -1,7 +1,7 @@
 "use client";
 
-import { DashboardHeader } from "@/components/dashboard-header";
-import { DashboardNav } from "@/components/dashboard-nav";
+import { DashboardMenu } from "@/app/(dashboard)/_components/dashboard-menu";
+import { DashboardNavbar } from "@/app/(dashboard)/_components/dashboard-navbar";
 import { Player } from "@/lib/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
@@ -63,9 +63,9 @@ export default function DashboardLayout({
 
 	return (
 		<div className="min-h-screen bg-background">
-			<DashboardHeader user={user} player={player} onSignOut={handleSignOut} />
+			<DashboardNavbar user={user} player={player} onSignOut={handleSignOut} />
 			<div className="container grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 py-8">
-				<DashboardNav />
+				<DashboardMenu />
 				<main>{children}</main>
 			</div>
 		</div>
