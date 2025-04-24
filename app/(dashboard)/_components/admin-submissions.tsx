@@ -88,7 +88,12 @@ export function AdminSubmissions() {
 
 	// Get unique fixtures for the filter dropdown
 	const uniqueFixtures = Array.from(
-		new Set(submissions.map((s) => s.fixture.match_day))
+		new Map(
+			submissions.map((submission) => [
+				submission.fixture.match_day, // Use match_day as the key
+				submission.fixture, // Store the full fixture object
+			])
+		).values()
 	);
 
 	return (
@@ -102,29 +107,32 @@ export function AdminSubmissions() {
 				</CardHeader>
 				<CardContent>
 					<div className="flex flex-col md:flex-row gap-4 mb-6">
-						<div className="w-full md:w-1/3">
+						<div className="w-full md:w-1/2">
 							<Label htmlFor="fixture-filter">Filter by Fixture</Label>
 							<Select
-								value={selectedFixture || undefined}
+								value={selectedFixture || "all"}
 								onValueChange={(value) =>
-									setSelectedFixture(value === "undefined" ? undefined : value)
+									setSelectedFixture(value === "all" ? undefined : value)
 								}
 							>
 								<SelectTrigger id="fixture-filter">
 									<SelectValue placeholder="All fixtures" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="undefined">All fixtures</SelectItem>{" "}
-									{/* Use "null" as a string */}
+									<SelectItem value="all">All fixtures</SelectItem>
 									{uniqueFixtures.map((fixture) => (
-										<SelectItem key={fixture} value={fixture}>
-											{fixture}
+										<SelectItem
+											key={fixture.match_day}
+											value={fixture.match_day}
+										>
+											{fixture.home_team} vs {fixture.away_team} (
+											{new Date(fixture.match_day).toLocaleDateString()})
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
 						</div>
-						<div className="w-full md:w-2/3">
+						<div className="w-full md:w-1/2">
 							<Label htmlFor="search-players">Search Players</Label>
 							<div className="relative">
 								<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
