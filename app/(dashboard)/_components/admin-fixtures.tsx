@@ -50,8 +50,9 @@ const teams = [
 ];
 
 export function AdminFixtures() {
-	const { toast } = useToast();
 	const supabase = createClientComponentClient();
+	const { toast } = useToast();
+
 	const [fixtures, setFixtures] = useState<any[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [newFixture, setNewFixture] = useState({
@@ -195,8 +196,6 @@ export function AdminFixtures() {
 	// Delete a fixture from the database
 	const handleDeleteFixture = async (fixtureId: string) => {
 		setIsLoading(true);
-
-		console.log({ fixtureId });
 
 		try {
 			const { error } = await supabase
