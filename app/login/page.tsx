@@ -91,6 +91,14 @@ export default function Login() {
 								onChange={(e) => setPassword(e.target.value)}
 								required
 							/>
+							<div className="text-sm text-right">
+								<Link
+									href="/reset-password"
+									className="text-primary hover:underline"
+								>
+									Forgot your password?
+								</Link>
+							</div>
 						</div>
 						{error && <div className="text-sm text-destructive">{error}</div>}
 					</CardContent>
