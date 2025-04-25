@@ -54,11 +54,8 @@ const navItems: NavItem[] = [
 	},
 ];
 
-export function DashboardMenu() {
+export function DashboardMenu({ isAdmin }: { isAdmin?: boolean }) {
 	const pathname = usePathname();
-
-	// For production, you'd check if user is admin
-	const isAdmin = true;
 
 	return (
 		<nav className="flex flex-col space-y-2">

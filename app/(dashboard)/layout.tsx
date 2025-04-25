@@ -65,7 +65,7 @@ export default function DashboardLayout({
 		<div className="min-h-screen bg-background">
 			<DashboardNavbar user={user} player={player} onSignOut={handleSignOut} />
 			<div className="container grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 py-8">
-				<DashboardMenu />
+				<DashboardMenu isAdmin={player?.is_admin} />
 				<main>{children}</main>
 			</div>
 		</div>

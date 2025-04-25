@@ -30,7 +30,11 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export function AdminSubmissions() {
+export function AdminSubmissions({ isAdmin }: { isAdmin: boolean }) {
+	// If the admin-components are reused elsewhere, keep the isAdmin checks within the components for additional protection.
+	if (!isAdmin) {
+		return <p>You do not have permission to manage fixtures.</p>;
+	}
 	const supabase = createClientComponentClient();
 	const { toast } = useToast();
 

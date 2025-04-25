@@ -28,9 +28,12 @@ import { useToast } from "@/hooks/use-toast";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Award, CheckCircle2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
-export function AdminPoints() {
+export function AdminPoints({ isAdmin }: { isAdmin: boolean }) {
+	// If the admin-components are reused elsewhere, keep the isAdmin checks within the components for additional protection.
+	if (!isAdmin) {
+		return <p>You do not have permission to manage fixtures.</p>;
+	}
 	const supabase = createClientComponentClient();
 	const { toast } = useToast();
 

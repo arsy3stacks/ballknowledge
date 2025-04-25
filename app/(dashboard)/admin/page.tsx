@@ -8,11 +8,103 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { CalendarDays, ClipboardCheck, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function AdminDashboard() {
-	const router = useRouter();
 	const supabase = createClientComponentClient();
+	const router = useRouter();
+
+	// State to store admin status the fetched data
+	const [isAdmin, setIsAdmin] = useState<boolean | null>(null); // null indicates loading
+	const [totalFixtures, setTotalFixtures] = useState<number>(0);
+	const [pendingFixtures, setPendingFixtures] = useState<number>(0);
+	const [activePlayers, setActivePlayers] = useState<number>(0);
+	const [newPlayersThisWeek, setNewPlayersThisWeek] = useState<number>(0);
+	const [totalPredictions, setTotalPredictions] = useState<number>(0);
+	const [upcomingPredictions, setUpcomingPredictions] = useState<number>(0);
+
+	// Fetch data from the database
+	const fetchData = async () => {
+		try {
+			// Check if the user is an admin
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+
+			if (!session) {
+				router.push("/login"); // Redirect to login if not authenticated
+				return;
+			}
+
+			const { data: userData, error: userError } = await supabase
+				.from("players")
+				.select("is_admin")
+				.eq("auth_id", session.user.id)
+				.single();
+
+			if (userError || !userData?.is_admin) {
+				router.push("/dashboard"); // Redirect non-admins to the main dashboard
+				return;
+			}
+
+			setIsAdmin(true); // User is an admin
+
+			// Fetch total fixtures and pending fixtures
+			const { data: fixturesData, error: fixturesError } = await supabase
+				.from("fixtures")
+				.select("*");
+
+			if (fixturesError) throw fixturesError;
+
+			setTotalFixtures(fixturesData.length);
+			setPendingFixtures(
+				fixturesData.filter((fixture) => fixture.outcome === null).length
+			);
+
+			// Fetch active players and new players this week
+			const { data: playersData, error: playersError } = await supabase
+				.from("players")
+				.select("*");
+
+			if (playersError) throw playersError;
+
+			setActivePlayers(playersData.length);
+
+			// Calculate new players this week
+			const oneWeekAgo = new Date();
+			oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+			setNewPlayersThisWeek(
+				playersData.filter((player) => new Date(player.joined_at) >= oneWeekAgo)
+					.length
+			);
+
+			// Fetch total predictions and predictions for upcoming fixtures
+			const { data: predictionsData, error: predictionsError } = await supabase
+				.from("predictions")
+				.select("id, fixture:fixtures(outcome)");
+
+			if (predictionsError) throw predictionsError;
+
+			setTotalPredictions(predictionsData.length);
+			setUpcomingPredictions(
+				predictionsData.filter(
+					(prediction) => prediction.fixture?.outcome === null
+				).length
+			);
+		} catch (error: any) {
+			console.error("Failed to fetch data:", error.message);
+		}
+	};
+
+	// Fetch data on component mount
+	useEffect(() => {
+		fetchData();
+	}, []);
+
+	// Show a loading state while checking admin status
+	if (isAdmin === null) {
+		return <p>Loading...</p>;
+	}
 
 	return (
 		<main className="space-y-6">
@@ -29,8 +121,10 @@ export default function AdminDashboard() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">28</div>
-						<p className="text-xs text-muted-foreground">4 pending fixtures</p>
+						<div className="text-2xl font-bold">{totalFixtures}</div>
+						<p className="text-xs text-muted-foreground">
+							{pendingFixtures} pending fixtures
+						</p>
 					</CardContent>
 				</Card>
 
@@ -42,8 +136,10 @@ export default function AdminDashboard() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">42</div>
-						<p className="text-xs text-muted-foreground">3 new this week</p>
+						<div className="text-2xl font-bold">{activePlayers}</div>
+						<p className="text-xs text-muted-foreground">
+							{newPlayersThisWeek} new this week
+						</p>
 					</CardContent>
 				</Card>
 
@@ -55,9 +151,9 @@ export default function AdminDashboard() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">156</div>
+						<div className="text-2xl font-bold">{totalPredictions}</div>
 						<p className="text-xs text-muted-foreground">
-							32 for upcoming fixtures
+							{upcomingPredictions} for upcoming fixtures
 						</p>
 					</CardContent>
 				</Card>
@@ -70,13 +166,13 @@ export default function AdminDashboard() {
 					<TabsTrigger value="points">Assign Points</TabsTrigger>
 				</TabsList>
 				<TabsContent value="fixtures" className="mt-6">
-					<AdminFixtures />
+					<AdminFixtures isAdmin={isAdmin} />
 				</TabsContent>
 				<TabsContent value="submissions" className="mt-6">
-					<AdminSubmissions />
+					<AdminSubmissions isAdmin={isAdmin} />
 				</TabsContent>
 				<TabsContent value="points" className="mt-6">
-					<AdminPoints />
+					<AdminPoints isAdmin={isAdmin} />
 				</TabsContent>
 			</Tabs>
 		</main>

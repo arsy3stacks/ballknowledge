@@ -49,7 +49,11 @@ const teams = [
 	"Wolves",
 ];
 
-export function AdminFixtures() {
+export function AdminFixtures({ isAdmin }: { isAdmin: boolean }) {
+	// If the admin-components are reused elsewhere, keep the isAdmin checks within the components for additional protection.
+	if (!isAdmin) {
+		return <p>You do not have permission to manage fixtures.</p>;
+	}
 	const supabase = createClientComponentClient();
 	const { toast } = useToast();
 
