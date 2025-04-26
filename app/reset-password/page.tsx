@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -25,7 +25,9 @@ export default function ResetPassword() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [message, setMessage] = useState<string | null>(null);
-	const [success, setSuccess] = useState(false); // New state to track success
+	const [success, setSuccess] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 	const supabase = createClientComponentClient();
 
@@ -115,27 +117,55 @@ export default function ResetPassword() {
 								<>
 									<div className="space-y-2">
 										<Label htmlFor="password">New Password</Label>
-										<Input
-											id="password"
-											type="password"
-											placeholder="••••••••••••"
-											value={password}
-											onChange={(e) => setPassword(e.target.value)}
-											required
-											minLength={6}
-										/>
+										<div className="relative">
+											<Input
+												id="password"
+												type={showPassword ? "text" : "password"}
+												placeholder="••••••••••••"
+												value={password}
+												onChange={(e) => setPassword(e.target.value)}
+												required
+												minLength={6}
+											/>
+											<button
+												type="button"
+												onClick={() => setShowPassword((prev) => !prev)}
+												className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
+												tabIndex={-1}
+											>
+												{showPassword ? (
+													<EyeOff className="h-4 w-4" />
+												) : (
+													<Eye className="h-4 w-4" />
+												)}
+											</button>
+										</div>
 									</div>
 									<div className="space-y-2">
 										<Label htmlFor="confirm-password">Confirm Password</Label>
-										<Input
-											id="confirm-password"
-											type="password"
-											placeholder="••••••••••••"
-											value={confirmPassword}
-											onChange={(e) => setConfirmPassword(e.target.value)}
-											required
-											minLength={6}
-										/>
+										<div className="relative">
+											<Input
+												id="confirm-password"
+												type={showConfirmPassword ? "text" : "password"}
+												placeholder="••••••••••••"
+												value={confirmPassword}
+												onChange={(e) => setConfirmPassword(e.target.value)}
+												required
+												minLength={6}
+											/>
+											<button
+												type="button"
+												onClick={() => setShowConfirmPassword((prev) => !prev)}
+												className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
+												tabIndex={-1}
+											>
+												{showConfirmPassword ? (
+													<EyeOff className="h-4 w-4" />
+												) : (
+													<Eye className="h-4 w-4" />
+												)}
+											</button>
+										</div>
 									</div>
 								</>
 							) : (

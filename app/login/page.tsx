@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -23,6 +23,7 @@ export default function Login() {
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [showPassword, setShowPassword] = useState(false);
 
 	const supabase = createClientComponentClient();
 
@@ -83,22 +84,38 @@ export default function Login() {
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="password">Password</Label>
-							<Input
-								id="password"
-								type="password"
-								placeholder="••••••••••••"
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
-								required
-							/>
-							<div className="text-sm text-right">
-								<Link
-									href="/reset-password"
-									className="text-primary hover:underline"
+							<div className="relative">
+								<Input
+									id="password"
+									type={showPassword ? "text" : "password"}
+									placeholder="••••••••••••"
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									required
+									minLength={6}
+								/>
+								<button
+									type="button"
+									onClick={() => setShowPassword((prev) => !prev)}
+									className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
+									tabIndex={-1}
 								>
-									Forgot your password?
-								</Link>
+									{showPassword ? (
+										<EyeOff className="h-4 w-4" />
+									) : (
+										<Eye className="h-4 w-4" />
+									)}
+								</button>
 							</div>
+						</div>
+
+						<div className="text-sm text-right">
+							<Link
+								href="/reset-password"
+								className="text-primary hover:underline"
+							>
+								Forgot your password?
+							</Link>
 						</div>
 						{error && <div className="text-sm text-destructive">{error}</div>}
 					</CardContent>
