@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -8,54 +9,61 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { resetPasswordSchema } from "@/lib/validations/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ArrowLeft, Eye, EyeOff, Trophy } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+
+type FormData = z.infer<typeof resetPasswordSchema>;
+
 export default function ResetPassword() {
 	const searchParams = useSearchParams();
 	const code = searchParams.get("code");
 
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
-	const [confirmPassword, setConfirmPassword] = useState("");
 	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [message, setMessage] = useState<string | null>(null);
-	const [success, setSuccess] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+	const [success, setSuccess] = useState(false);
 	const supabase = createClientComponentClient();
 
-	const handlePasswordReset = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const form = useForm<FormData>({
+		resolver: zodResolver(resetPasswordSchema),
+		defaultValues: {
+			email: "",
+			password: code ? "" : undefined,
+			confirmPassword: code ? "" : undefined,
+		},
+	});
+
+	const onSubmit = async (values: FormData) => {
 		setLoading(true);
-		setError(null);
-		setMessage(null);
 
 		try {
-			if (code && password !== confirmPassword) {
-				throw new Error("Passwords do not match. Please try again.");
-			}
 			if (code) {
-				// Update the user's password
 				const { error: updateError } = await supabase.auth.updateUser({
-					password: password,
+					password: values.password,
 				});
 
 				if (updateError) throw updateError;
 
-				// Show success message and stop redirecting
 				setSuccess(true);
-				setMessage("Password updated successfully. You can now log in.");
 			} else {
-				// Send password reset email
 				const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-					email,
+					values.email,
 					{
 						redirectTo: `${window.location.origin}/reset-password`,
 					}
@@ -63,12 +71,17 @@ export default function ResetPassword() {
 
 				if (resetError) throw resetError;
 
-				setMessage(
-					"If an account exists with this email, you will receive a password reset link."
-				);
+				form.reset();
+				form.setError("root", {
+					type: "success",
+					message:
+						"If an account exists with this email, you will receive a password reset link.",
+				});
 			}
-		} catch (err: any) {
-			setError(err.message || "Something went wrong");
+		} catch (error: any) {
+			form.setError("root", {
+				message: error.message || "Something went wrong",
+			});
 		} finally {
 			setLoading(false);
 		}
@@ -111,93 +124,119 @@ export default function ResetPassword() {
 						</CardFooter>
 					</CardContent>
 				) : (
-					<form onSubmit={handlePasswordReset}>
-						<CardContent className="space-y-4">
-							{code ? (
-								<>
-									<div className="space-y-2">
-										<Label htmlFor="password">New Password</Label>
-										<div className="relative">
-											<Input
-												id="password"
-												type={showPassword ? "text" : "password"}
-												placeholder="••••••••••••"
-												value={password}
-												onChange={(e) => setPassword(e.target.value)}
-												required
-												minLength={6}
-											/>
-											<button
-												type="button"
-												onClick={() => setShowPassword((prev) => !prev)}
-												className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
-												tabIndex={-1}
-											>
-												{showPassword ? (
-													<EyeOff className="h-4 w-4" />
-												) : (
-													<Eye className="h-4 w-4" />
-												)}
-											</button>
-										</div>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="confirm-password">Confirm Password</Label>
-										<div className="relative">
-											<Input
-												id="confirm-password"
-												type={showConfirmPassword ? "text" : "password"}
-												placeholder="••••••••••••"
-												value={confirmPassword}
-												onChange={(e) => setConfirmPassword(e.target.value)}
-												required
-												minLength={6}
-											/>
-											<button
-												type="button"
-												onClick={() => setShowConfirmPassword((prev) => !prev)}
-												className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
-												tabIndex={-1}
-											>
-												{showConfirmPassword ? (
-													<EyeOff className="h-4 w-4" />
-												) : (
-													<Eye className="h-4 w-4" />
-												)}
-											</button>
-										</div>
-									</div>
-								</>
-							) : (
-								<div className="space-y-2">
-									<Label htmlFor="email">Email</Label>
-									<Input
-										id="email"
-										type="email"
-										placeholder="your.email@example.com"
-										value={email}
-										onChange={(e) => setEmail(e.target.value)}
-										required
+					<Form {...form}>
+						<form onSubmit={form.handleSubmit(onSubmit)}>
+							<CardContent className="space-y-4">
+								{code ? (
+									<>
+										<FormField
+											control={form.control}
+											name="password"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>New Password</FormLabel>
+													<FormControl>
+														<div className="relative">
+															<Input
+																type={showPassword ? "text" : "password"}
+																placeholder="••••••••••••"
+																{...field}
+															/>
+															<button
+																type="button"
+																onClick={() => setShowPassword((prev) => !prev)}
+																className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
+																tabIndex={-1}
+															>
+																{showPassword ? (
+																	<EyeOff className="h-4 w-4" />
+																) : (
+																	<Eye className="h-4 w-4" />
+																)}
+															</button>
+														</div>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="confirmPassword"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Confirm Password</FormLabel>
+													<FormControl>
+														<div className="relative">
+															<Input
+																type={showConfirmPassword ? "text" : "password"}
+																placeholder="••••••••••••"
+																{...field}
+															/>
+															<button
+																type="button"
+																onClick={() =>
+																	setShowConfirmPassword((prev) => !prev)
+																}
+																className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
+																tabIndex={-1}
+															>
+																{showConfirmPassword ? (
+																	<EyeOff className="h-4 w-4" />
+																) : (
+																	<Eye className="h-4 w-4" />
+																)}
+															</button>
+														</div>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								) : (
+									<FormField
+										control={form.control}
+										name="email"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Email</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="your.email@example.com"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
 									/>
-								</div>
-							)}
-							{error && <div className="text-sm text-destructive">{error}</div>}
-							{message && (
-								<div className="text-sm text-emerald-600 dark:text-emerald-400">
-									{message}
-								</div>
-							)}
-						</CardContent>
-						<CardFooter className="flex flex-col space-y-4">
-							<Button className="w-full" type="submit" disabled={loading}>
-								{loading
-									? "Processing..."
-									: code
-									? "Update Password"
-									: "Send Reset Link"}
-							</Button>
-						</CardFooter>
-					</form>
+								)}
+
+								{form.formState.errors.root && (
+									<div
+										className={`text-sm ${
+											form.formState.errors.root.type === "success"
+												? "text-emerald-600 dark:text-emerald-400"
+												: "text-destructive"
+										}`}
+									>
+										{form.formState.errors.root.message}
+									</div>
+								)}
+							</CardContent>
+							<CardFooter className="flex flex-col space-y-4">
+								<Button className="w-full" type="submit" disabled={loading}>
+									{loading
+										? "Processing..."
+										: code
+										? "Update Password"
+										: "Send Reset Link"}
+								</Button>
+							</CardFooter>
+						</form>
+					</Form>
 				)}
 			</Card>
 		</div>
