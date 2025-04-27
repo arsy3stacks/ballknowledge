@@ -30,11 +30,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export function AdminSubmissions({ isAdmin }: { isAdmin: boolean }) {
-	// If the admin-components are reused elsewhere, keep the isAdmin checks within the components for additional protection.
-	if (!isAdmin) {
-		return <p>You do not have permission to manage fixtures.</p>;
-	}
+export function AdminSubmissions() {
 	const supabase = createClientComponentClient();
 	const { toast } = useToast();
 
@@ -51,12 +47,12 @@ export function AdminSubmissions({ isAdmin }: { isAdmin: boolean }) {
 
 		try {
 			const { data, error } = await supabase.from("predictions").select(`
-          id,
-          predicted_outcome,
-          submitted_at,
-          player:players(username),
-          fixture:fixtures(home_team, away_team, match_day)
-    `);
+				id,
+				predicted_outcome,
+				submitted_at,
+				player:players(username),
+				fixture:fixtures(home_team, away_team, match_day)
+	`);
 
 			if (error) throw error;
 
@@ -80,7 +76,9 @@ export function AdminSubmissions({ isAdmin }: { isAdmin: boolean }) {
 	// Filter submissions based on fixture and search query
 	const filteredSubmissions = submissions.filter((submission) => {
 		const matchesFixture =
-			!selectedFixture || submission.fixture.match_day === selectedFixture;
+			!selectedFixture ||
+			`${submission.fixture.home_team}-${submission.fixture.away_team}-${submission.fixture.match_day}` ===
+				selectedFixture;
 		const matchesSearch =
 			!searchQuery ||
 			submission.player.username
@@ -94,7 +92,7 @@ export function AdminSubmissions({ isAdmin }: { isAdmin: boolean }) {
 	const uniqueFixtures = Array.from(
 		new Map(
 			submissions.map((submission) => [
-				submission.fixture.match_day, // Use match_day as the key
+				`${submission.fixture.home_team}-${submission.fixture.away_team}-${submission.fixture.match_day}`, // Composite key
 				submission.fixture, // Store the full fixture object
 			])
 		).values()
@@ -126,8 +124,8 @@ export function AdminSubmissions({ isAdmin }: { isAdmin: boolean }) {
 									<SelectItem value="all">All fixtures</SelectItem>
 									{uniqueFixtures.map((fixture) => (
 										<SelectItem
-											key={fixture.match_day}
-											value={fixture.match_day}
+											key={`${fixture.home_team}-${fixture.away_team}-${fixture.match_day}`}
+											value={`${fixture.home_team}-${fixture.away_team}-${fixture.match_day}`}
 										>
 											{fixture.home_team} vs {fixture.away_team} (
 											{new Date(fixture.match_day).toLocaleDateString()})

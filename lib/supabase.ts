@@ -16,6 +16,7 @@ export type Player = {
 	nationality: string;
 	joined_at: string;
 	is_admin: boolean;
+	is_suspended: boolean;
 };
 
 export type Fixture = {

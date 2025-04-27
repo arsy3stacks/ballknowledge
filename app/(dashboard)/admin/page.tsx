@@ -3,10 +3,11 @@
 import { AdminFixtures } from "@/app/(dashboard)/_components/admin-fixtures";
 import { AdminPoints } from "@/app/(dashboard)/_components/admin-points";
 import { AdminSubmissions } from "@/app/(dashboard)/_components/admin-submissions";
+import { AdminUsers } from "@/app/(dashboard)/_components/admin-users";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CalendarDays, ClipboardCheck, Users } from "lucide-react";
+import { Ban, CalendarDays, ClipboardCheck, Shield, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -19,7 +20,7 @@ export default function AdminDashboard() {
 	const [totalFixtures, setTotalFixtures] = useState<number>(0);
 	const [pendingFixtures, setPendingFixtures] = useState<number>(0);
 	const [activePlayers, setActivePlayers] = useState<number>(0);
-	const [newPlayersThisWeek, setNewPlayersThisWeek] = useState<number>(0);
+	const [suspendedPlayers, setSuspendedPlayers] = useState<number>(0);
 	const [totalPredictions, setTotalPredictions] = useState<number>(0);
 	const [upcomingPredictions, setUpcomingPredictions] = useState<number>(0);
 
@@ -61,21 +62,18 @@ export default function AdminDashboard() {
 				fixturesData.filter((fixture) => fixture.outcome === null).length
 			);
 
-			// Fetch active players and new players this week
+			// Fetch active and suspended players
 			const { data: playersData, error: playersError } = await supabase
 				.from("players")
 				.select("*");
 
 			if (playersError) throw playersError;
 
-			setActivePlayers(playersData.length);
-
-			// Calculate new players this week
-			const oneWeekAgo = new Date();
-			oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-			setNewPlayersThisWeek(
-				playersData.filter((player) => new Date(player.joined_at) >= oneWeekAgo)
-					.length
+			setActivePlayers(
+				playersData.filter((player) => !player.is_suspended).length
+			);
+			setSuspendedPlayers(
+				playersData.filter((player) => player.is_suspended).length
 			);
 
 			// Fetch total predictions and predictions for upcoming fixtures
@@ -112,7 +110,7 @@ export default function AdminDashboard() {
 				<h1 className="text-3xl font-bold">Admin Dashboard</h1>
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium flex items-center">
@@ -138,7 +136,7 @@ export default function AdminDashboard() {
 					<CardContent>
 						<div className="text-2xl font-bold">{activePlayers}</div>
 						<p className="text-xs text-muted-foreground">
-							{newPlayersThisWeek} new this week
+							{suspendedPlayers} suspended
 						</p>
 					</CardContent>
 				</Card>
@@ -157,22 +155,41 @@ export default function AdminDashboard() {
 						</p>
 					</CardContent>
 				</Card>
+
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm font-medium flex items-center">
+							<Shield className="h-4 w-4 text-chart-4 mr-2" />
+							Admin Actions
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">4</div>
+						<p className="text-xs text-muted-foreground">
+							Available admin tools
+						</p>
+					</CardContent>
+				</Card>
 			</div>
 
 			<Tabs defaultValue="fixtures">
 				<TabsList>
 					<TabsTrigger value="fixtures">Manage Fixtures</TabsTrigger>
+					<TabsTrigger value="users">Manage Users</TabsTrigger>
 					<TabsTrigger value="submissions">View Submissions</TabsTrigger>
 					<TabsTrigger value="points">Assign Points</TabsTrigger>
 				</TabsList>
 				<TabsContent value="fixtures" className="mt-6">
-					<AdminFixtures isAdmin={isAdmin} />
+					<AdminFixtures />
+				</TabsContent>
+				<TabsContent value="users" className="mt-6">
+					<AdminUsers />
 				</TabsContent>
 				<TabsContent value="submissions" className="mt-6">
-					<AdminSubmissions isAdmin={isAdmin} />
+					<AdminSubmissions />
 				</TabsContent>
 				<TabsContent value="points" className="mt-6">
-					<AdminPoints isAdmin={isAdmin} />
+					<AdminPoints />
 				</TabsContent>
 			</Tabs>
 		</main>
