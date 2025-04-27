@@ -20,24 +20,10 @@ import { format } from "date-fns";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
-interface PredictionWithFixture {
-	id: string;
-	predicted_outcome: "H" | "D" | "A";
-	submitted_at: string;
-	points_earned?: number;
-	fixture: {
-		id: string;
-		match_day: string;
-		home_team: string;
-		away_team: string;
-		outcome: "H" | "D" | "A" | null;
-	};
-}
-
 export default function Predictions() {
 	const supabase = createClientComponentClient();
 	const [loading, setLoading] = useState(true);
-	const [predictions, setPredictions] = useState<PredictionWithFixture[]>([]);
+	const [predictions, setPredictions] = useState<any[]>([]);
 	const [stats, setStats] = useState({
 		total: 0,
 		correct: 0,
@@ -61,38 +47,58 @@ export default function Predictions() {
 
 				if (!playerData) return;
 
-				// Fetch predictions with fixture details
+				// First, fetch predictions with fixture details
 				const { data: predictionsData } = await supabase
 					.from("predictions")
 					.select(
 						`
-            *,
-            fixture:fixtures(*),
-            points:points(points_earned)
+            id,
+            predicted_outcome,
+            submitted_at,
+            fixture:fixtures (
+              id,
+              match_day,
+              home_team,
+              away_team,
+              outcome
+            )
           `
 					)
 					.eq("player_id", playerData.id)
 					.order("submitted_at", { ascending: false });
 
-				if (predictionsData) {
-					const processed = predictionsData.map((pred: any) => ({
-						...pred,
-						points_earned: pred.points?.[0]?.points_earned || 0,
-					}));
+				// Then, fetch points separately and merge them
+				const { data: pointsData } = await supabase
+					.from("points")
+					.select("fixture_id, points_earned")
+					.eq("player_id", playerData.id);
 
-					setPredictions(processed);
+				// Create a map of fixture_id to points_earned
+				const pointsMap = new Map(
+					pointsData?.map((p) => [p.fixture_id, p.points_earned]) || []
+				);
+
+				// Merge predictions with points
+				const processedPredictions = predictionsData?.map((pred) => ({
+					...pred,
+					points_earned: pointsMap.get(pred.fixture.id) || 0,
+				}));
+
+				if (processedPredictions) {
+					setPredictions(processedPredictions);
 
 					// Calculate stats
-					const correct = processed.filter(
-						(p: any) => p.predicted_outcome === p.fixture.outcome
+					const total = processedPredictions.length;
+					const correct = processedPredictions.filter(
+						(p) => p.predicted_outcome === p.fixture.outcome
 					).length;
-					const points = processed.reduce(
-						(sum: number, p: any) => sum + (p.points_earned || 0),
+					const points = Array.from(pointsMap.values()).reduce(
+						(sum, points) => sum + points,
 						0
 					);
 
 					setStats({
-						total: processed.length,
+						total,
 						correct,
 						points,
 					});
