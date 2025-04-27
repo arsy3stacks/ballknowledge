@@ -52,44 +52,22 @@ export const registerSchema = z
 		path: ["confirmPassword"],
 	});
 
+export const requestResetLinkSchema = z.object({
+	email: z.string().email("Please enter a valid email address"),
+});
+
 export const resetPasswordSchema = z
 	.object({
-		email: z.string().email("Please enter a valid email address"),
-		password: z
-			.string()
-			.min(6, "Password must be at least 6 characters")
-			.optional(),
-		confirmPassword: z.string().optional(),
+		password: z.string().min(6, "Password must be at least 6 characters"),
+		confirmPassword: z.string(),
 	})
-	.refine(
-		(data) => {
-			if (data.password || data.confirmPassword) {
-				return data.password === data.confirmPassword;
-			}
-			return true;
-		},
-		{
-			message: "Passwords do not match",
-			path: ["confirmPassword"],
-		}
-	);
+	.refine((data) => data.password === data.confirmPassword, {
+		message: "Passwords do not match",
+		path: ["confirmPassword"],
+	});
 
 export const profileSchema = z.object({
-	username: z
-		.string()
-		.min(3, "Username must be at least 3 characters")
-		.refine(
-			async (username, ctx) => {
-				// Skip validation if username hasn't changed
-				if (ctx.path.length > 0 && username === ctx.path[0]) {
-					return true;
-				}
-				return !(await usernameExists(username));
-			},
-			{
-				message: "This username is already taken",
-			}
-		),
+	username: z.string().min(3, "Username must be at least 3 characters"),
 	club_supported: z.string().min(1, "Please select your supported club"),
 	nationality: z.string().min(1, "Please select your nationality"),
 });

@@ -24,7 +24,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ArrowLeft, Eye, EyeOff, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -43,6 +43,21 @@ export default function Login() {
 			password: "",
 		},
 	});
+
+	useEffect(() => {
+		const checkSession = async () => {
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+
+			if (session) {
+				// Redirect to /dashboard if the user is logged in
+				router.push("/dashboard");
+			}
+		};
+
+		checkSession();
+	}, [supabase, router]);
 
 	const onSubmit = async (values: FormData) => {
 		setLoading(true);

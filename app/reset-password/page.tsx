@@ -18,7 +18,10 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { resetPasswordSchema } from "@/lib/validations/auth";
+import {
+	requestResetLinkSchema,
+	resetPasswordSchema,
+} from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ArrowLeft, Eye, EyeOff, Trophy } from "lucide-react";
@@ -28,7 +31,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-type FormData = z.infer<typeof resetPasswordSchema>;
+type RequestResetLinkFormData = z.infer<typeof requestResetLinkSchema>;
+type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPassword() {
 	const searchParams = useSearchParams();
@@ -40,46 +44,70 @@ export default function ResetPassword() {
 	const [success, setSuccess] = useState(false);
 	const supabase = createClientComponentClient();
 
-	const form = useForm<FormData>({
-		resolver: zodResolver(resetPasswordSchema),
+	// Form for requesting a reset link
+	const requestResetLinkForm = useForm<RequestResetLinkFormData>({
+		resolver: zodResolver(requestResetLinkSchema),
 		defaultValues: {
 			email: "",
-			password: code ? "" : undefined,
-			confirmPassword: code ? "" : undefined,
 		},
 	});
 
-	const onSubmit = async (values: FormData) => {
+	// Form for resetting the password
+	const resetPasswordForm = useForm<ResetPasswordFormData>({
+		resolver: zodResolver(resetPasswordSchema),
+		defaultValues: {
+			password: "",
+			confirmPassword: "",
+		},
+	});
+
+	// Handle "Request Reset Link" form submission
+	const handleRequestResetLink = async (values: RequestResetLinkFormData) => {
 		setLoading(true);
 
 		try {
-			if (code) {
-				const { error: updateError } = await supabase.auth.updateUser({
-					password: values.password,
-				});
+			const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+				values.email,
+				{
+					redirectTo: `${window.location.origin}/reset-password`,
+				}
+			);
 
-				if (updateError) throw updateError;
+			if (resetError) throw resetError;
 
-				setSuccess(true);
-			} else {
-				const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-					values.email,
-					{
-						redirectTo: `${window.location.origin}/reset-password`,
-					}
-				);
-
-				if (resetError) throw resetError;
-
-				form.reset();
-				form.setError("root", {
-					type: "success",
-					message:
-						"If an account exists with this email, you will receive a password reset link.",
-				});
-			}
+			requestResetLinkForm.reset();
+			requestResetLinkForm.setError("root", {
+				type: "success",
+				message:
+					"If an account exists with this email, you will receive a password reset link.",
+			});
 		} catch (error: any) {
-			form.setError("root", {
+			requestResetLinkForm.setError("root", {
+				message: error.message || "Something went wrong",
+			});
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	// Handle "Reset Password" form submission
+	const handleResetPassword = async (values: ResetPasswordFormData) => {
+		setLoading(true);
+
+		try {
+			if (!code) {
+				throw new Error("Invalid or missing reset code.");
+			}
+
+			const { error: updateError } = await supabase.auth.updateUser({
+				password: values.password,
+			});
+
+			if (updateError) throw updateError;
+
+			setSuccess(true);
+		} catch (error: any) {
+			resetPasswordForm.setError("root", {
 				message: error.message || "Something went wrong",
 			});
 		} finally {
@@ -123,116 +151,114 @@ export default function ResetPassword() {
 							</Link>
 						</CardFooter>
 					</CardContent>
-				) : (
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)}>
+				) : code ? (
+					// Reset Password Form
+					<Form {...resetPasswordForm}>
+						<form
+							onSubmit={resetPasswordForm.handleSubmit(handleResetPassword)}
+						>
 							<CardContent className="space-y-4">
-								{code ? (
-									<>
-										<FormField
-											control={form.control}
-											name="password"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>New Password</FormLabel>
-													<FormControl>
-														<div className="relative">
-															<Input
-																type={showPassword ? "text" : "password"}
-																placeholder="••••••••••••"
-																{...field}
-															/>
-															<button
-																type="button"
-																onClick={() => setShowPassword((prev) => !prev)}
-																className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
-																tabIndex={-1}
-															>
-																{showPassword ? (
-																	<EyeOff className="h-4 w-4" />
-																) : (
-																	<Eye className="h-4 w-4" />
-																)}
-															</button>
-														</div>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-
-										<FormField
-											control={form.control}
-											name="confirmPassword"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Confirm Password</FormLabel>
-													<FormControl>
-														<div className="relative">
-															<Input
-																type={showConfirmPassword ? "text" : "password"}
-																placeholder="••••••••••••"
-																{...field}
-															/>
-															<button
-																type="button"
-																onClick={() =>
-																	setShowConfirmPassword((prev) => !prev)
-																}
-																className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
-																tabIndex={-1}
-															>
-																{showConfirmPassword ? (
-																	<EyeOff className="h-4 w-4" />
-																) : (
-																	<Eye className="h-4 w-4" />
-																)}
-															</button>
-														</div>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									</>
-								) : (
-									<FormField
-										control={form.control}
-										name="email"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Email</FormLabel>
-												<FormControl>
+								<FormField
+									control={resetPasswordForm.control}
+									name="password"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>New Password</FormLabel>
+											<FormControl>
+												<div className="relative">
 													<Input
-														placeholder="your.email@example.com"
+														type={showPassword ? "text" : "password"}
+														placeholder="••••••••••••"
 														{...field}
 													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								)}
-
-								{form.formState.errors.root && (
-									<div
-										className={`text-sm ${
-											form.formState.errors.root.type === "success"
-												? "text-emerald-600 dark:text-emerald-400"
-												: "text-destructive"
-										}`}
-									>
-										{form.formState.errors.root.message}
-									</div>
-								)}
+													<button
+														type="button"
+														onClick={() => setShowPassword((prev) => !prev)}
+														className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
+														tabIndex={-1}
+													>
+														{showPassword ? (
+															<EyeOff className="h-4 w-4" />
+														) : (
+															<Eye className="h-4 w-4" />
+														)}
+													</button>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={resetPasswordForm.control}
+									name="confirmPassword"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Confirm Password</FormLabel>
+											<FormControl>
+												<div className="relative">
+													<Input
+														type={showConfirmPassword ? "text" : "password"}
+														placeholder="••••••••••••"
+														{...field}
+													/>
+													<button
+														type="button"
+														onClick={() =>
+															setShowConfirmPassword((prev) => !prev)
+														}
+														className="absolute inset-y-0 right-2 flex items-center px-2 text-muted-foreground"
+														tabIndex={-1}
+													>
+														{showConfirmPassword ? (
+															<EyeOff className="h-4 w-4" />
+														) : (
+															<Eye className="h-4 w-4" />
+														)}
+													</button>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 							</CardContent>
 							<CardFooter className="flex flex-col space-y-4">
 								<Button className="w-full" type="submit" disabled={loading}>
-									{loading
-										? "Processing..."
-										: code
-										? "Update Password"
-										: "Send Reset Link"}
+									{loading ? "Processing..." : "Update Password"}
+								</Button>
+							</CardFooter>
+						</form>
+					</Form>
+				) : (
+					// Request Reset Link Form
+					<Form {...requestResetLinkForm}>
+						<form
+							onSubmit={requestResetLinkForm.handleSubmit(
+								handleRequestResetLink
+							)}
+						>
+							<CardContent className="space-y-4">
+								<FormField
+									control={requestResetLinkForm.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Email</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="your.email@example.com"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</CardContent>
+							<CardFooter className="flex flex-col space-y-4">
+								<Button className="w-full" type="submit" disabled={loading}>
+									{loading ? "Processing..." : "Send Reset Link"}
 								</Button>
 							</CardFooter>
 						</form>

@@ -32,13 +32,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ArrowLeft, Eye, EyeOff, Trophy } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 type FormData = z.infer<typeof registerSchema>;
 
 export default function Register() {
+	const router = useRouter();
 	const supabase = createClientComponentClient();
 	const [loading, setLoading] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
@@ -56,6 +58,21 @@ export default function Register() {
 			nationality: "",
 		},
 	});
+
+	useEffect(() => {
+		const checkSession = async () => {
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+
+			if (session) {
+				// Redirect to /dashboard if the user is logged in
+				router.push("/dashboard");
+			}
+		};
+
+		checkSession();
+	}, [supabase, router]);
 
 	const onSubmit = async (values: FormData) => {
 		setLoading(true);
@@ -120,8 +137,9 @@ export default function Register() {
 						<div className="text-center text-emerald-600 dark:text-emerald-400">
 							<h2 className="text-lg font-bold">Registration Successful!</h2>
 							<p>
-								We've sent you a verification email. Please check your inbox and
-								verify your email to complete the registration process.
+								We&apos;ve sent you a verification email. Please check your
+								inbox and verify your email to complete the registration
+								process.
 							</p>
 						</div>
 						<CardFooter className="flex flex-col space-y-4">

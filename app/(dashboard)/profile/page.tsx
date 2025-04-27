@@ -11,7 +11,6 @@ import {
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -25,35 +24,37 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Player } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { profileSchema } from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import * as z from "zod";
-
-const formSchema = z.object({
-	username: z.string().min(3).max(20),
-	club_supported: z.string().min(1),
-	nationality: z.string().min(1),
-});
 
 export default function Profile() {
 	const supabase = createClientComponentClient();
+	const { toast } = useToast();
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
-	const [player, setPlayer] = useState<Player | null>(null);
+	const [resetLoading, setResetLoading] = useState(false); // For password reset
+	const [userEmail, setUserEmail] = useState<string | null>(null); // Store user's email
+	const [initialValues, setInitialValues] = useState<z.infer<
+		typeof profileSchema
+	> | null>(null);
 
-	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodResolver(formSchema),
+	// Use profileSchema for validation
+	const form = useForm<z.infer<typeof profileSchema>>({
+		resolver: zodResolver(profileSchema),
 		defaultValues: {
 			username: "",
 			club_supported: "",
 			nationality: "",
 		},
 	});
+
+	const { watch } = form;
 
 	useEffect(() => {
 		const fetchProfile = async () => {
@@ -63,6 +64,8 @@ export default function Profile() {
 				} = await supabase.auth.getUser();
 				if (!user) return;
 
+				setUserEmail(user.email ?? null);
+
 				const { data: playerData } = await supabase
 					.from("players")
 					.select("*")
@@ -70,12 +73,13 @@ export default function Profile() {
 					.single();
 
 				if (playerData) {
-					setPlayer(playerData);
-					form.reset({
+					const initialData = {
 						username: playerData.username,
 						club_supported: playerData.club_supported,
 						nationality: playerData.nationality,
-					});
+					};
+					form.reset(initialData);
+					setInitialValues(initialData);
 				}
 			} catch (error) {
 				console.error("Error fetching profile:", error);
@@ -87,29 +91,100 @@ export default function Profile() {
 		fetchProfile();
 	}, [supabase, form]);
 
-	const onSubmit = async (values: z.infer<typeof formSchema>) => {
-		if (!player) return;
-
+	const onSubmit = async (values: z.infer<typeof profileSchema>) => {
 		setSaving(true);
 		try {
-			const { error } = await supabase
+			// Check if the username is already taken
+			const usernameExists = await supabase
+				.from("players")
+				.select("id")
+				.eq("username", values.username)
+				.single();
+
+			if (usernameExists.data) {
+				form.setError("username", {
+					type: "manual",
+					message: "This username is already taken",
+				});
+				setSaving(false);
+				return;
+			}
+
+			// Update profile details
+			const { error: profileError } = await supabase
 				.from("players")
 				.update({
 					username: values.username,
 					club_supported: values.club_supported,
 					nationality: values.nationality,
 				})
-				.eq("id", player.id);
+				.eq("auth_id", (await supabase.auth.getUser()).data.user?.id);
 
-			if (error) throw error;
+			if (profileError) throw profileError;
 
-			toast.success("Profile updated successfully");
+			toast({
+				title: "Success",
+				description: "Profile updated successfully",
+			});
 		} catch (error: any) {
-			toast.error("Failed to update profile: " + error.message);
+			toast({
+				variant: "destructive",
+				title: "Error",
+				description: error.message || "Failed to update profile",
+			});
 		} finally {
 			setSaving(false);
 		}
 	};
+
+	// Handle password reset
+	const handlePasswordReset = async () => {
+		setResetLoading(true);
+		try {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+
+			if (!user?.email) {
+				toast({
+					variant: "destructive",
+					title: "Error",
+					description: "No email associated with this account.",
+				});
+				return;
+			}
+
+			const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+				user.email,
+				{
+					redirectTo: `${window.location.origin}/reset-password`,
+				}
+			);
+
+			if (resetError) throw resetError;
+
+			toast({
+				title: "Success",
+				description: "Password reset link sent to your email.",
+			});
+		} catch (error: any) {
+			toast({
+				variant: "destructive",
+				title: "Error",
+				description: error.message || "Failed to send password reset link.",
+			});
+		} finally {
+			setResetLoading(false);
+		}
+	};
+
+	// Watch the current form values
+	const currentValues = watch();
+
+	// Check if the form values have changed
+	const isFormChanged =
+		initialValues &&
+		JSON.stringify(initialValues) !== JSON.stringify(currentValues);
 
 	if (loading) {
 		return (
@@ -135,6 +210,20 @@ export default function Profile() {
 				<CardContent>
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+							{/* Email (Disabled) */}
+							<FormItem>
+								<FormLabel>Email</FormLabel>
+								<FormControl>
+									<Input
+										value={userEmail || ""}
+										disabled
+										className="bg-gray-100 cursor-not-allowed"
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+
+							{/* Username */}
 							<FormField
 								control={form.control}
 								name="username"
@@ -144,14 +233,12 @@ export default function Profile() {
 										<FormControl>
 											<Input {...field} />
 										</FormControl>
-										<FormDescription>
-											This is your public display name
-										</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
 
+							{/* Supported Club */}
 							<FormField
 								control={form.control}
 								name="club_supported"
@@ -187,6 +274,7 @@ export default function Profile() {
 								)}
 							/>
 
+							{/* Nationality */}
 							<FormField
 								control={form.control}
 								name="nationality"
@@ -219,12 +307,32 @@ export default function Profile() {
 								)}
 							/>
 
-							<Button type="submit" disabled={saving}>
+							{/* Submit Button */}
+							<Button type="submit" disabled={saving || !isFormChanged}>
 								<Save className="mr-2 h-4 w-4" />
 								{saving ? "Saving..." : "Save Changes"}
 							</Button>
 						</form>
 					</Form>
+				</CardContent>
+			</Card>
+
+			{/* Password Reset Section */}
+			<Card>
+				<CardHeader>
+					<CardTitle>Reset Password</CardTitle>
+					<CardDescription>
+						Send a password reset link to your email.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Button
+						className="w-full"
+						onClick={handlePasswordReset}
+						disabled={resetLoading}
+					>
+						{resetLoading ? "Sending..." : "Send Reset Link"}
+					</Button>
 				</CardContent>
 			</Card>
 		</div>
