@@ -63,8 +63,10 @@ export function AdminFixtures() {
 	const [fixtures, setFixtures] = useState<any[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [date, setDate] = useState<Date>(new Date());
+	const [kickoffTime, setKickoffTime] = useState<string>("15:00"); // Default kickoff time
 	const [newFixture, setNewFixture] = useState({
 		match_day: format(new Date(), "yyyy-MM-dd"),
+		kickoff_time: "15:00", // Default kickoff time
 		home_team: "",
 		away_team: "",
 	});
@@ -98,7 +100,8 @@ export function AdminFixtures() {
 		if (
 			!newFixture.home_team ||
 			!newFixture.away_team ||
-			!newFixture.match_day
+			!newFixture.match_day ||
+			!newFixture.kickoff_time
 		) {
 			toast({
 				variant: "destructive",
@@ -125,6 +128,7 @@ export function AdminFixtures() {
 				.insert([
 					{
 						match_day: newFixture.match_day,
+						kickoff_time: newFixture.kickoff_time,
 						home_team: newFixture.home_team,
 						away_team: newFixture.away_team,
 						outcome: null,
@@ -146,10 +150,12 @@ export function AdminFixtures() {
 			// Reset form
 			setNewFixture({
 				match_day: format(new Date(), "yyyy-MM-dd"),
+				kickoff_time: "15:00",
 				home_team: "",
 				away_team: "",
 			});
 			setDate(new Date());
+			setKickoffTime("15:00");
 
 			toast({
 				title: "Success",
@@ -243,7 +249,8 @@ export function AdminFixtures() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+						{/* Match Date */}
 						<div className="space-y-2">
 							<Label>Match Date</Label>
 							<Popover>
@@ -276,6 +283,24 @@ export function AdminFixtures() {
 							</Popover>
 						</div>
 
+						{/* Kickoff Time */}
+						<div className="space-y-2">
+							<Label htmlFor="kickoff-time">Kickoff Time</Label>
+							<Input
+								id="kickoff-time"
+								type="time"
+								value={kickoffTime}
+								onChange={(e) => {
+									setKickoffTime(e.target.value);
+									setNewFixture({
+										...newFixture,
+										kickoff_time: e.target.value,
+									});
+								}}
+							/>
+						</div>
+
+						{/* Home Team */}
 						<div className="space-y-2">
 							<Label htmlFor="home-team">Home Team</Label>
 							<Select
@@ -297,6 +322,7 @@ export function AdminFixtures() {
 							</Select>
 						</div>
 
+						{/* Away Team */}
 						<div className="space-y-2">
 							<Label htmlFor="away-team">Away Team</Label>
 							<Select

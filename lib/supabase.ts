@@ -22,10 +22,12 @@ export type Player = {
 export type Fixture = {
 	id: string;
 	match_day: string;
+	kickoff_time: string;
 	home_team: string;
 	away_team: string;
 	outcome: "H" | "D" | "A" | null;
 	created_at: string;
+	status: "upcoming" | "live" | "finished";
 };
 
 export type PredictionOutcome = "H" | "D" | "A";

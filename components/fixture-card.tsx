@@ -2,11 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getMockedDate } from "@/lib/get-mocked-date";
 import { Fixture, PredictionOutcome } from "@/lib/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { format } from "date-fns";
-import { AlertCircle, Ban, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, Ban, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface FixtureCardProps {
@@ -23,8 +24,7 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isSuspended, setIsSuspended] = useState(false);
 
-	// Check if user has already predicted this fixture and if they're suspended
-	useState(() => {
+	useEffect(() => {
 		const checkUserStatus = async () => {
 			if (!playerId) return;
 
@@ -58,7 +58,7 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 		};
 
 		checkUserStatus();
-	});
+	}, [playerId, fixture.id, supabase]);
 
 	const handlePrediction = async () => {
 		if (!selectedOutcome || !playerId) return;
@@ -68,7 +68,7 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 		try {
 			if (existingPrediction) {
 				// Update existing prediction
-				await supabase
+				const { error } = await supabase
 					.from("predictions")
 					.update({
 						predicted_outcome: selectedOutcome,
@@ -77,6 +77,9 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 					.eq("player_id", playerId)
 					.eq("fixture_id", fixture.id);
 
+				if (error) throw error;
+
+				setExistingPrediction(selectedOutcome);
 				toast.success("Prediction updated successfully!");
 			} else {
 				// Create new prediction
@@ -112,19 +115,74 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 		}
 	};
 
-	// Format the match date
-	const matchDate = new Date(fixture.match_day);
+	const matchDate = new Date(`${fixture.match_day}T${fixture.kickoff_time}`);
 	const formattedDate = format(matchDate, "EEE, MMM d");
+	const formattedTime = format(matchDate, "HH:mm");
+	// const deadlinePassed = new Date() > matchDate;
+	const deadlinePassed = getMockedDate() > matchDate;
 
-	// Check if prediction deadline has passed
-	const deadlinePassed = new Date() > matchDate;
+	const getFixtureStatus = () => {
+		if (fixture.status === "finished") {
+			if (!existingPrediction) {
+				return {
+					text: "No Prediction Made",
+					icon: <AlertCircle className="h-4 w-4 mr-1" />,
+					color: "text-amber-500 dark:text-amber-400",
+				};
+			}
+			const isCorrect = existingPrediction === fixture.outcome;
+			return {
+				text: isCorrect ? "Correct Prediction" : "Incorrect Prediction",
+				icon: isCorrect ? (
+					<CheckCircle2 className="h-4 w-4 mr-1" />
+				) : (
+					<XCircle className="h-4 w-4 mr-1" />
+				),
+				color: isCorrect
+					? "text-emerald-600 dark:text-emerald-400"
+					: "text-red-600 dark:text-red-400",
+			};
+		}
+
+		if (fixture.status === "live") {
+			return {
+				text: "Match In Progress",
+				icon: <Clock className="h-4 w-4 mr-1" />,
+				color: "text-blue-600 dark:text-blue-400",
+			};
+		}
+
+		if (deadlinePassed) {
+			return {
+				text: "Deadline Passed",
+				icon: <AlertCircle className="h-4 w-4 mr-1" />,
+				color: "text-amber-500 dark:text-amber-400",
+			};
+		}
+
+		if (existingPrediction) {
+			return {
+				text: "Prediction Made",
+				icon: <CheckCircle2 className="h-4 w-4 mr-1" />,
+				color: "text-emerald-600 dark:text-emerald-400",
+			};
+		}
+
+		return {
+			text: "Awaiting Prediction",
+			icon: <Clock className="h-4 w-4 mr-1" />,
+			color: "text-blue-600 dark:text-blue-400",
+		};
+	};
 
 	if (isSuspended) {
 		return (
 			<Card className="p-4 bg-destructive/5 border-destructive">
 				<div className="flex flex-col space-y-3">
 					<div className="flex items-center justify-between">
-						<div className="text-sm text-muted-foreground">{formattedDate}</div>
+						<div className="text-sm text-muted-foreground">
+							{formattedDate} at {formattedTime}
+						</div>
 						<div className="flex items-center text-sm text-destructive">
 							<Ban className="h-4 w-4 mr-1" />
 							Account Suspended
@@ -146,23 +204,19 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 		);
 	}
 
+	const status = getFixtureStatus();
+
 	return (
 		<Card className="p-4 hover:shadow-md transition-shadow">
 			<div className="flex flex-col space-y-3">
 				<div className="flex justify-between items-center">
-					<div className="text-sm text-muted-foreground">{formattedDate}</div>
-					{deadlinePassed && (
-						<div className="flex items-center text-sm text-amber-500 dark:text-amber-400">
-							<AlertCircle className="h-4 w-4 mr-1" />
-							Deadline passed
-						</div>
-					)}
-					{existingPrediction && !deadlinePassed && (
-						<div className="flex items-center text-sm text-emerald-600 dark:text-emerald-400">
-							<CheckCircle2 className="h-4 w-4 mr-1" />
-							Predicted
-						</div>
-					)}
+					<div className="text-sm text-muted-foreground">
+						{formattedDate} at {formattedTime}
+					</div>
+					<div className={`flex items-center text-sm ${status.color}`}>
+						{status.icon}
+						{status.text}
+					</div>
 				</div>
 
 				<div className="grid grid-cols-3 items-center gap-2 py-2">
@@ -171,7 +225,21 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 					<div className="text-center font-medium">{fixture.away_team}</div>
 				</div>
 
-				{!deadlinePassed && (
+				{/* Show user's prediction for live and past fixtures */}
+				{(fixture.status === "live" || fixture.status === "finished") &&
+					existingPrediction && (
+						<div className="text-center text-sm text-primary">
+							Your Prediction:{" "}
+							{existingPrediction === "H"
+								? "Home Win"
+								: existingPrediction === "A"
+								? "Away Win"
+								: "Draw"}
+						</div>
+					)}
+
+				{/* Prediction buttons for upcoming fixtures */}
+				{fixture.status === "upcoming" && !deadlinePassed && (
 					<>
 						<div className="grid grid-cols-3 gap-2">
 							<Button
@@ -205,7 +273,7 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 							disabled={
 								!selectedOutcome ||
 								isSubmitting ||
-								existingPrediction === selectedOutcome
+								selectedOutcome === existingPrediction
 							}
 							size="sm"
 						>
@@ -218,7 +286,8 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 					</>
 				)}
 
-				{deadlinePassed && fixture.outcome && (
+				{/* Show match result for finished fixtures */}
+				{fixture.status === "finished" && fixture.outcome && (
 					<div className="bg-secondary p-2 rounded text-center">
 						Result:{" "}
 						{fixture.outcome === "H"

@@ -9,15 +9,17 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getMockedDate } from "@/lib/get-mocked-date";
 import { Fixture } from "@/lib/supabase";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CalendarDays, Trophy } from "lucide-react";
+import { CalendarDays, Clock, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function Fixtures() {
 	const supabase = createClientComponentClient();
 	const [loading, setLoading] = useState(true);
 	const [upcomingFixtures, setUpcomingFixtures] = useState<Fixture[]>([]);
+	const [liveFixtures, setLiveFixtures] = useState<Fixture[]>([]);
 	const [pastFixtures, setPastFixtures] = useState<Fixture[]>([]);
 	const [player, setPlayer] = useState<any>(null);
 
@@ -39,28 +41,47 @@ export default function Fixtures() {
 
 				setPlayer(playerData);
 
-				// Get today's date at midnight UTC
-				const today = new Date();
-				today.setUTCHours(0, 0, 0, 0);
+				// Get current date and time
+				// const now = new Date();
+				const now = getMockedDate();
+				const today = now.toISOString().split("T")[0];
+				const currentTime = now.toTimeString().split(" ")[0];
 
-				// Fetch upcoming fixtures
-				const { data: upcomingData } = await supabase
+				// Fetch all fixtures
+				const { data: fixturesData } = await supabase
 					.from("fixtures")
 					.select("*")
-					.gte("match_day", today.toISOString())
-					.order("match_day", { ascending: true });
+					.order("match_day", { ascending: true })
+					.order("kickoff_time", { ascending: true });
 
-				setUpcomingFixtures(upcomingData || []);
+				if (fixturesData) {
+					// Filter fixtures based on status
+					const upcoming: Fixture[] = [];
+					const live: Fixture[] = [];
+					const past: Fixture[] = [];
 
-				// Fetch past fixtures
-				const { data: pastData } = await supabase
-					.from("fixtures")
-					.select("*")
-					.lt("match_day", today.toISOString())
-					.order("match_day", { ascending: false })
-					.limit(10);
+					fixturesData.forEach((fixture: Fixture) => {
+						const fixtureDateTime = new Date(
+							`${fixture.match_day}T${fixture.kickoff_time}`
+						);
 
-				setPastFixtures(pastData || []);
+						if (fixtureDateTime > now) {
+							upcoming.push({ ...fixture, status: "upcoming" });
+						} else if (
+							fixture.match_day === today &&
+							!fixture.outcome &&
+							fixtureDateTime <= now
+						) {
+							live.push({ ...fixture, status: "live" });
+						} else {
+							past.push({ ...fixture, status: "finished" });
+						}
+					});
+
+					setUpcomingFixtures(upcoming);
+					setLiveFixtures(live);
+					setPastFixtures(past);
+				}
 			} catch (error) {
 				console.error("Error fetching fixtures:", error);
 			} finally {
@@ -69,6 +90,11 @@ export default function Fixtures() {
 		};
 
 		fetchData();
+
+		// Set up interval to refresh live fixtures
+		const interval = setInterval(fetchData, 60000); // Refresh every minute
+
+		return () => clearInterval(interval);
 	}, [supabase]);
 
 	if (loading) {
@@ -91,6 +117,10 @@ export default function Fixtures() {
 						<CalendarDays className="h-4 w-4" />
 						Upcoming
 					</TabsTrigger>
+					<TabsTrigger value="live" className="flex items-center gap-2">
+						<Clock className="h-4 w-4" />
+						Live Matches
+					</TabsTrigger>
 					<TabsTrigger value="past" className="flex items-center gap-2">
 						<Trophy className="h-4 w-4" />
 						Past Results
@@ -102,7 +132,7 @@ export default function Fixtures() {
 						<CardHeader>
 							<CardTitle>Upcoming Fixtures</CardTitle>
 							<CardDescription>
-								Make your predictions before the matches begin
+								Make your predictions before kickoff
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
@@ -119,6 +149,32 @@ export default function Fixtures() {
 							) : (
 								<div className="text-center py-8 text-muted-foreground">
 									No upcoming fixtures scheduled
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				</TabsContent>
+
+				<TabsContent value="live">
+					<Card>
+						<CardHeader>
+							<CardTitle>Live Matches</CardTitle>
+							<CardDescription>Matches currently in progress</CardDescription>
+						</CardHeader>
+						<CardContent>
+							{liveFixtures.length > 0 ? (
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									{liveFixtures.map((fixture) => (
+										<FixtureCard
+											key={fixture.id}
+											fixture={fixture}
+											playerId={player?.id || ""}
+										/>
+									))}
+								</div>
+							) : (
+								<div className="text-center py-8 text-muted-foreground">
+									No matches currently in progress
 								</div>
 							)}
 						</CardContent>
