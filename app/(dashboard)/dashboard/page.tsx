@@ -55,12 +55,18 @@ export default function Dashboard() {
 				setPlayer(playerData as Player);
 
 				// Fetch upcoming fixtures
-				const today = new Date().toISOString().split("T")[0];
+				const now = new Date();
+				const today = now.toISOString().split("T")[0];
+				const currentTime = now.toTimeString().split(" ")[0];
+
 				const { data: fixturesData } = await supabase
 					.from("fixtures")
 					.select("*")
-					.gte("match_day", today)
+					.or(
+						`and(match_day.eq.${today},kickoff_time.gt.${currentTime}),match_day.gt.${today}`
+					)
 					.order("match_day", { ascending: true })
+					.order("kickoff_time", { ascending: true })
 					.limit(5);
 
 				setUpcomingFixtures(fixturesData as Fixture[]);
