@@ -91,8 +91,8 @@ export default function Dashboard() {
 
 	if (loading) {
 		return (
-			<div className="flex h-screen items-center justify-center">
-				Loading...
+			<div className="flex items-center justify-center min-h-[200px]">
+				Loading dashboard...
 			</div>
 		);
 	}

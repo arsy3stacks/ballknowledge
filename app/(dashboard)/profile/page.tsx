@@ -214,11 +214,7 @@ export default function Profile() {
 							<FormItem>
 								<FormLabel>Email</FormLabel>
 								<FormControl>
-									<Input
-										value={userEmail || ""}
-										disabled
-										className="bg-gray-100 cursor-not-allowed"
-									/>
+									<Input value={userEmail || ""} disabled />
 								</FormControl>
 								<FormMessage />
 							</FormItem>

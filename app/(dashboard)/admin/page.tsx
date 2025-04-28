@@ -23,6 +23,9 @@ export default function AdminDashboard() {
 	const [suspendedPlayers, setSuspendedPlayers] = useState<number>(0);
 	const [totalPredictions, setTotalPredictions] = useState<number>(0);
 	const [upcomingPredictions, setUpcomingPredictions] = useState<number>(0);
+	const [playersSignedUpThisWeek, setPlayersSignedUpThisWeek] =
+		useState<number>(0);
+	const [adminCount, setAdminCount] = useState<number>(0);
 
 	// Fetch data from the database
 	const fetchData = async () => {
@@ -72,9 +75,20 @@ export default function AdminDashboard() {
 			setActivePlayers(
 				playersData.filter((player) => !player.is_suspended).length
 			);
+
+			const oneWeekAgo = new Date();
+			oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+			setPlayersSignedUpThisWeek(
+				playersData.filter((player) => new Date(player.joined_at) >= oneWeekAgo)
+					.length
+			);
+
 			setSuspendedPlayers(
 				playersData.filter((player) => player.is_suspended).length
 			);
+
+			setAdminCount(playersData.filter((player) => player.is_admin).length);
 
 			// Fetch total predictions and predictions for upcoming fixtures
 			const { data: predictionsData, error: predictionsError } = await supabase
@@ -129,21 +143,6 @@ export default function AdminDashboard() {
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium flex items-center">
-							<Users className="h-4 w-4 text-chart-2 mr-2" />
-							Active Players
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">{activePlayers}</div>
-						<p className="text-xs text-muted-foreground">
-							{suspendedPlayers} suspended
-						</p>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium flex items-center">
 							<ClipboardCheck className="h-4 w-4 text-chart-3 mr-2" />
 							Predictions
 						</CardTitle>
@@ -159,14 +158,29 @@ export default function AdminDashboard() {
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium flex items-center">
-							<Shield className="h-4 w-4 text-chart-4 mr-2" />
-							Admin Actions
+							<Users className="h-4 w-4 text-chart-2 mr-2" />
+							Active Players
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">4</div>
+						<div className="text-2xl font-bold">{activePlayers}</div>
 						<p className="text-xs text-muted-foreground">
-							Available admin tools
+							{playersSignedUpThisWeek} signed up this week
+						</p>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm font-medium flex items-center">
+							<Shield className="h-4 w-4 text-chart-4 mr-2" />
+							Admin Users
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{adminCount}</div>
+						<p className="text-xs text-muted-foreground">
+							{suspendedPlayers} suspended players
 						</p>
 					</CardContent>
 				</Card>
@@ -175,21 +189,21 @@ export default function AdminDashboard() {
 			<Tabs defaultValue="fixtures">
 				<TabsList>
 					<TabsTrigger value="fixtures">Manage Fixtures</TabsTrigger>
-					<TabsTrigger value="users">Manage Users</TabsTrigger>
 					<TabsTrigger value="submissions">View Submissions</TabsTrigger>
 					<TabsTrigger value="points">Assign Points</TabsTrigger>
+					<TabsTrigger value="users">Manage Users</TabsTrigger>
 				</TabsList>
 				<TabsContent value="fixtures" className="mt-6">
 					<AdminFixtures />
-				</TabsContent>
-				<TabsContent value="users" className="mt-6">
-					<AdminUsers />
 				</TabsContent>
 				<TabsContent value="submissions" className="mt-6">
 					<AdminSubmissions />
 				</TabsContent>
 				<TabsContent value="points" className="mt-6">
 					<AdminPoints />
+				</TabsContent>
+				<TabsContent value="users" className="mt-6">
+					<AdminUsers />
 				</TabsContent>
 			</Tabs>
 		</main>

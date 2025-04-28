@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
 	Card,
 	CardContent,
@@ -12,6 +13,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -19,9 +25,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { format } from "date-fns";
-import { CalendarDays, CircleX, Plus, Save, Trash2, X } from "lucide-react";
+import { CalendarDays, CircleX, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // Mock teams for the demo
@@ -55,6 +62,7 @@ export function AdminFixtures() {
 
 	const [fixtures, setFixtures] = useState<any[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
+	const [date, setDate] = useState<Date>(new Date());
 	const [newFixture, setNewFixture] = useState({
 		match_day: format(new Date(), "yyyy-MM-dd"),
 		home_team: "",
@@ -127,9 +135,6 @@ export function AdminFixtures() {
 
 			if (error) throw error;
 
-			// Add the new fixture to the list
-			// setFixtures([...fixtures, data[0]]);
-
 			// Add the new fixture to the list and sort by ascending date
 			setFixtures((prevFixtures) =>
 				[...prevFixtures, data[0]].sort(
@@ -144,6 +149,7 @@ export function AdminFixtures() {
 				home_team: "",
 				away_team: "",
 			});
+			setDate(new Date());
 
 			toast({
 				title: "Success",
@@ -239,15 +245,35 @@ export function AdminFixtures() {
 				<CardContent className="space-y-4">
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div className="space-y-2">
-							<Label htmlFor="match-date">Match Date</Label>
-							<Input
-								id="match-date"
-								type="date"
-								value={newFixture.match_day}
-								onChange={(e) =>
-									setNewFixture({ ...newFixture, match_day: e.target.value })
-								}
-							/>
+							<Label>Match Date</Label>
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant={"outline"}
+										className={cn(
+											"w-full justify-start text-left font-normal",
+											!date && "text-muted-foreground"
+										)}
+									>
+										<CalendarDays className="mr-2 h-4 w-4" />
+										{date ? format(date, "PPP") : <span>Pick a date</span>}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="w-auto p-0" align="start">
+									<Calendar
+										mode="single"
+										selected={date}
+										onSelect={(newDate) => {
+											setDate(newDate || new Date());
+											setNewFixture({
+												...newFixture,
+												match_day: format(newDate || new Date(), "yyyy-MM-dd"),
+											});
+										}}
+										initialFocus
+									/>
+								</PopoverContent>
+							</Popover>
 						</div>
 
 						<div className="space-y-2">
