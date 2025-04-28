@@ -40,6 +40,7 @@ export default function Profile() {
 	const [saving, setSaving] = useState(false);
 	const [resetLoading, setResetLoading] = useState(false); // For password reset
 	const [userEmail, setUserEmail] = useState<string | null>(null); // Store user's email
+	const [username, setUsername] = useState<string | null>(null); // Store user's username
 	const [initialValues, setInitialValues] = useState<z.infer<
 		typeof profileSchema
 	> | null>(null);
@@ -48,7 +49,6 @@ export default function Profile() {
 	const form = useForm<z.infer<typeof profileSchema>>({
 		resolver: zodResolver(profileSchema),
 		defaultValues: {
-			username: "",
 			club_supported: "",
 			nationality: "",
 		},
@@ -73,6 +73,7 @@ export default function Profile() {
 					.single();
 
 				if (playerData) {
+					setUsername(playerData.username); // Set the username
 					const initialData = {
 						username: playerData.username,
 						club_supported: playerData.club_supported,
@@ -94,27 +95,10 @@ export default function Profile() {
 	const onSubmit = async (values: z.infer<typeof profileSchema>) => {
 		setSaving(true);
 		try {
-			// Check if the username is already taken
-			const usernameExists = await supabase
-				.from("players")
-				.select("id")
-				.eq("username", values.username)
-				.single();
-
-			if (usernameExists.data) {
-				form.setError("username", {
-					type: "manual",
-					message: "This username is already taken",
-				});
-				setSaving(false);
-				return;
-			}
-
 			// Update profile details
 			const { error: profileError } = await supabase
 				.from("players")
 				.update({
-					username: values.username,
 					club_supported: values.club_supported,
 					nationality: values.nationality,
 				})
@@ -220,19 +204,13 @@ export default function Profile() {
 							</FormItem>
 
 							{/* Username */}
-							<FormField
-								control={form.control}
-								name="username"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Username</FormLabel>
-										<FormControl>
-											<Input {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+							<FormItem>
+								<FormLabel>Username</FormLabel>
+								<FormControl>
+									<Input value={username || ""} disabled />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
 
 							{/* Supported Club */}
 							<FormField

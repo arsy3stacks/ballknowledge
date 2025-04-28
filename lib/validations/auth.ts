@@ -67,7 +67,6 @@ export const resetPasswordSchema = z
 	});
 
 export const profileSchema = z.object({
-	username: z.string().min(3, "Username must be at least 3 characters"),
 	club_supported: z.string().min(1, "Please select your supported club"),
 	nationality: z.string().min(1, "Please select your nationality"),
 });

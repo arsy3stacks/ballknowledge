@@ -38,6 +38,7 @@ export function AdminPoints() {
 	const [points, setPoints] = useState<any[]>([]);
 	const [selectedFixture, setSelectedFixture] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [assigningAll, setAssigningAll] = useState(false);
 
 	// Fetch fixtures, predictions, and points from the database
 	const fetchData = async () => {
@@ -86,21 +87,9 @@ export function AdminPoints() {
 		}
 	};
 
-	// Assign points for the selected fixture
-	const handleAssignPoints = async () => {
-		if (!selectedFixture) {
-			toast({
-				variant: "destructive",
-				title: "Error",
-				description: "Please select a fixture",
-			});
-			return;
-		}
-
-		// Get the selected fixture details
-		const currentFixture = fixtures.find(
-			(fixture) => fixture.id === selectedFixture
-		);
+	// Assign points for a specific fixture
+	const handleAssignPoints = async (fixtureId: string) => {
+		const currentFixture = fixtures.find((fixture) => fixture.id === fixtureId);
 
 		if (!currentFixture || currentFixture.outcome === null) {
 			toast({
@@ -116,7 +105,7 @@ export function AdminPoints() {
 		try {
 			// Filter predictions for the selected fixture
 			const fixturePredictions = predictions.filter(
-				(prediction) => prediction.fixture_id === selectedFixture
+				(prediction) => prediction.fixture_id === fixtureId
 			);
 
 			// Assign points based on the outcome
@@ -163,6 +152,9 @@ export function AdminPoints() {
 				title: "Success",
 				description: "Points assigned successfully!",
 			});
+
+			// Refresh data
+			await fetchData();
 		} catch (error: any) {
 			toast({
 				variant: "destructive",
@@ -171,6 +163,45 @@ export function AdminPoints() {
 			});
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	// Assign points for all completed fixtures
+	const handleAssignAllPoints = async () => {
+		setAssigningAll(true);
+
+		try {
+			// Get all completed fixtures with outcomes
+			const completedFixtures = fixtures.filter(
+				(fixture) => fixture.outcome !== null
+			);
+
+			if (completedFixtures.length === 0) {
+				toast({
+					variant: "destructive",
+					title: "No Fixtures",
+					description: "No completed fixtures found to assign points for",
+				});
+				return;
+			}
+
+			// Process each fixture
+			for (const fixture of completedFixtures) {
+				await handleAssignPoints(fixture.id);
+			}
+
+			toast({
+				title: "Success",
+				description: "Points assigned for all completed fixtures!",
+			});
+		} catch (error: any) {
+			toast({
+				variant: "destructive",
+				title: "Error",
+				description: `Failed to assign all points: ${error.message}`,
+			});
+		} finally {
+			setAssigningAll(false);
 		}
 	};
 
@@ -184,7 +215,22 @@ export function AdminPoints() {
 		? predictions.filter(
 				(prediction) => prediction.fixture_id === selectedFixture
 		  )
-		: predictions; // Include all predictions when selectedFixture is null
+		: predictions;
+
+	// Get completed fixtures that need points assigned
+	const completedFixturesNeedingPoints = fixtures.filter(
+		(fixture) =>
+			fixture.outcome !== null &&
+			predictions.some(
+				(prediction) =>
+					prediction.fixture_id === fixture.id &&
+					!points.some(
+						(point) =>
+							point.player_id === prediction.player_id &&
+							point.fixture_id === fixture.id
+					)
+			)
+	);
 
 	return (
 		<div className="space-y-6">
@@ -208,7 +254,7 @@ export function AdminPoints() {
 								<SelectValue placeholder="Select a fixture" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">All fixtures</SelectItem>{" "}
+								<SelectItem value="all">All fixtures</SelectItem>
 								{fixtures.map((fixture) => (
 									<SelectItem key={fixture.id} value={fixture.id}>
 										{fixture.home_team} vs {fixture.away_team} (
@@ -232,9 +278,11 @@ export function AdminPoints() {
 							<TableBody>
 								{filteredPredictions.length > 0 ? (
 									filteredPredictions.map((prediction) => {
+										const fixture = fixtures.find(
+											(f) => f.id === prediction.fixture_id
+										);
 										const isCorrect =
-											fixtures.find((f) => f.id === prediction.fixture_id)
-												?.outcome === prediction.predicted_outcome;
+											fixture?.outcome === prediction.predicted_outcome;
 
 										const pointsEarned = points.find(
 											(point) =>
@@ -261,16 +309,22 @@ export function AdminPoints() {
 													</div>
 												</TableCell>
 												<TableCell>
-													{isCorrect ? (
-														<div className="flex items-center text-emerald-600 dark:text-emerald-400">
-															<CheckCircle2 className="h-5 w-5 mr-1" />
-															<span>Correct</span>
-														</div>
+													{fixture?.outcome ? (
+														isCorrect ? (
+															<div className="flex items-center text-emerald-600 dark:text-emerald-400">
+																<CheckCircle2 className="h-5 w-5 mr-1" />
+																<span>Correct</span>
+															</div>
+														) : (
+															<div className="flex items-center text-red-600 dark:text-red-400">
+																<XCircle className="h-5 w-5 mr-1" />
+																<span>Incorrect</span>
+															</div>
+														)
 													) : (
-														<div className="flex items-center text-red-600 dark:text-red-400">
-															<XCircle className="h-5 w-5 mr-1" />
-															<span>Incorrect</span>
-														</div>
+														<span className="text-muted-foreground">
+															Pending
+														</span>
 													)}
 												</TableCell>
 												<TableCell>
@@ -285,6 +339,16 @@ export function AdminPoints() {
 															<CheckCircle2 className="h-5 w-5 mr-1" />
 															<span>{pointsEarned} Points</span>
 														</div>
+													) : fixture?.outcome ? (
+														<Button
+															size="sm"
+															onClick={() =>
+																handleAssignPoints(prediction.fixture_id)
+															}
+															disabled={loading}
+														>
+															Assign Points
+														</Button>
 													) : (
 														<span className="text-muted-foreground">
 															Not assigned
@@ -308,25 +372,37 @@ export function AdminPoints() {
 						</Table>
 					</div>
 
-					<div className="mt-6">
+					<div className="mt-6 space-y-4">
 						<Button
 							className="w-full"
-							onClick={handleAssignPoints}
+							onClick={() =>
+								selectedFixture
+									? handleAssignPoints(selectedFixture)
+									: handleAssignAllPoints()
+							}
 							disabled={
 								loading ||
-								!selectedFixture ||
-								filteredPredictions.every((prediction) =>
-									points.some(
-										(point) =>
-											point.player_id === prediction.player_id &&
-											point.fixture_id === prediction.fixture_id
-									)
-								)
+								assigningAll ||
+								(selectedFixture
+									? !fixtures.find((f) => f.id === selectedFixture && f.outcome)
+									: completedFixturesNeedingPoints.length === 0)
 							}
 						>
 							<Award className="mr-2 h-4 w-4" />
-							{loading ? "Assigning Points..." : "Assign Points Automatically"}
+							{loading || assigningAll
+								? "Assigning Points..."
+								: selectedFixture
+								? "Assign Points for Selected Fixture"
+								: "Assign All Outstanding Points"}
 						</Button>
+
+						{completedFixturesNeedingPoints.length > 0 && (
+							<p className="text-sm text-muted-foreground text-center">
+								{completedFixturesNeedingPoints.length} fixture
+								{completedFixturesNeedingPoints.length === 1 ? "" : "s"} with
+								unassigned points
+							</p>
+						)}
 					</div>
 				</CardContent>
 			</Card>
