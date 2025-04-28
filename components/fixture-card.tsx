@@ -118,8 +118,8 @@ export function FixtureCard({ fixture, playerId }: FixtureCardProps) {
 	const matchDate = new Date(`${fixture.match_day}T${fixture.kickoff_time}`);
 	const formattedDate = format(matchDate, "EEE, MMM d");
 	const formattedTime = format(matchDate, "HH:mm");
-	// const deadlinePassed = new Date() > matchDate;
-	const deadlinePassed = getMockedDate() > matchDate;
+	const deadlinePassed = new Date() > matchDate;
+	// const deadlinePassed = getMockedDate() > matchDate;
 
 	const getFixtureStatus = () => {
 		if (fixture.status === "finished") {

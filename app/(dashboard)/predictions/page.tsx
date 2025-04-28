@@ -81,7 +81,10 @@ export default function Predictions() {
 				// Merge predictions with points
 				const processedPredictions = predictionsData?.map((pred) => ({
 					...pred,
-					points_earned: pointsMap.get(pred.fixture.id) || 0,
+					points_earned:
+						pred.fixture.outcome === null
+							? "-" // Set "-" for pending predictions
+							: pointsMap.get(pred.fixture.id) ?? 0, // Default to 0 for incorrect predictions
 				}));
 
 				if (processedPredictions) {
@@ -226,7 +229,10 @@ export default function Predictions() {
 										)}
 									</TableCell>
 									<TableCell className="text-right">
-										{prediction.points_earned || "-"}
+										{prediction.points_earned !== null &&
+										prediction.points_earned !== undefined
+											? prediction.points_earned
+											: "-"}
 									</TableCell>
 								</TableRow>
 							))}

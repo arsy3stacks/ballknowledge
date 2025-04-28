@@ -42,8 +42,8 @@ export default function Fixtures() {
 				setPlayer(playerData);
 
 				// Get current date and time
-				// const now = new Date();
-				const now = getMockedDate();
+				const now = new Date();
+				// const now = getMockedDate();
 				const today = now.toISOString().split("T")[0];
 				const currentTime = now.toTimeString().split(" ")[0];
 
