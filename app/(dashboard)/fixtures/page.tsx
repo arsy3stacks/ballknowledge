@@ -1,6 +1,6 @@
 "use client";
 
-import { FixtureCard } from "@/components/fixture-card";
+import { FixtureCard } from "@/app/(dashboard)/_components/fixture-card";
 import {
 	Card,
 	CardContent,

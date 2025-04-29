@@ -1,8 +1,8 @@
 "use client";
 
-import { FixtureCard } from "@/components/fixture-card";
-import { LeaderboardPreview } from "@/components/leaderboard-preview";
-import { PlayerStats } from "@/components/player-stats";
+import { FixtureCard } from "@/app/(dashboard)/_components/fixture-card";
+import { LeaderboardPreview } from "@/app/(dashboard)/_components/leaderboard-preview";
+import { PlayerStats } from "@/app/(dashboard)/_components/player-stats";
 import { Button } from "@/components/ui/button";
 import {
 	Card,

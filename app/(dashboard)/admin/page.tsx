@@ -7,7 +7,7 @@ import { AdminUsers } from "@/app/(dashboard)/_components/admin-users";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Ban, CalendarDays, ClipboardCheck, Shield, Users } from "lucide-react";
+import { CalendarDays, ClipboardCheck, Shield, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
